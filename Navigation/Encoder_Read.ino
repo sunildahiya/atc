@@ -5,8 +5,8 @@ void updateEncoderRight(){
   int encoded = (MSB << 1) |LSB; //converting the 2 pin value to single number
   int sum  = (lastEncodedRight << 2) | encoded; //adding it to the previous encoded value
 
-  if(sum == 0b1101 || sum == 0b0100 || sum == 0b0010 || sum == 0b1011) encoderValueRight ++;
-  if(sum == 0b1110 || sum == 0b0111 || sum == 0b0001 || sum == 0b1000) encoderValueRight --;
+  if(sum == 0b1101 || sum == 0b0100 || sum == 0b0010 || sum == 0b1011) encoderValueRight --;
+  if(sum == 0b1110 || sum == 0b0111 || sum == 0b0001 || sum == 0b1000) encoderValueRight ++;
 
   lastEncodedRight = encoded; //store this value for next time
 }
