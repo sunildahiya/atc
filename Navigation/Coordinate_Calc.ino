@@ -5,8 +5,8 @@ void calc_coord(){
   prevEncoderValueLeft = encoderValueLeft;
   
   rightDistTrav = 2*PI*wheelRadius*rightDistTrav/977;
-  leftDistTrav = 2*PI*wheelRadius*LeftDistTrav/977;
-  midDistTrav = (rightDistTrav+leftDistTrav)/2;
+  leftDistTrav = 2*PI*wheelRadius*leftDistTrav/977;
+  double midDistTrav = (rightDistTrav+leftDistTrav)/2;
 
   double angleChange = (leftDistTrav-rightDistTrav)/wheelSeparation;
   angle = angle + angleChange;

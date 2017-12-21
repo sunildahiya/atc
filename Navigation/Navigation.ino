@@ -29,7 +29,7 @@ Driver motorLeft(motorLeftDirPin1, motorLeftDirPin2, motorLeftEnPin);
 //Fuzzy
 //Fuzzy fuzzy(12, 5, 40, 0); //error, derror, correction and centre
 
-double kp = 0.8, kd = 0.05;
+double kp = 15, kd = 4;
 double error = 0, derror = 0, prevError = 0, correction = 0;
 double xError = 0, angleError = 0;
 int basePWM = 130;

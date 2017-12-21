@@ -16,10 +16,10 @@ void apply_correction(int dir){
   correction = kp*error + kd*derror;
   correction = limit(correction, -30, 30);
 //  correction = fuzzy.centroid_correction(error, derror);
-  
+//  correction = 0;
   if (dir == forward){
     motorRight.clockwise(basePWM-correction);
-    motorLeft.clockwise(basePWM+correction);
+    motorLeft.clockwise(basePWM+correction-5);
   }
   else if (dir == backward){
     motorRight.anticlockwise(basePWM-correction);
