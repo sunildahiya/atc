@@ -9,20 +9,23 @@ int limit(int value, int lowestValue, int highestValue){
 void apply_ultra_correction(int dir){
   angleError = (movingAvgLeftFrontV-movingAvgLeftBackV)*180/(leftUltraDist*3.14);
   xError = (movingAvgLeftFrontV+movingAvgLeftBackV)/2 - leftRefDist;
-  error = 0.6*xError + 0.7*angleError;
+  if (dir == 1)
+    error = 0.6*xError + 0.7*angleError;
+  else if(dir == -1)
+    error = 0.6*xError - 0.7*angleError;
   derror = error-prevError;
   prevError = error;
   correction = kp*error + kd*derror;
-  correction = limit(correction, -25, 25);
+  correction = limit(correction, -45, 45);
 //  correction = fuzzy.centroid_correction(error, derror);
 //  correction = 0;
   if (dir == forward){
     motorRight.clockwise(basePWM-correction);
-    motorLeft.clockwise(basePWM+correction-22);
+    motorLeft.clockwise(basePWM+correction-23);
   }
   else if (dir == backward){
     motorRight.anticlockwise(basePWM-correction);
-    motorLeft.anticlockwise(basePWM+correction);
+    motorLeft.anticlockwise(basePWM+correction-23);
   }
   else{
     motorRight.stall();

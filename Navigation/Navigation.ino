@@ -45,10 +45,10 @@ Driver motorLeft(motorLeftDirPin1, motorLeftDirPin2, motorLeftEnPin);
 //Fuzzy
 //Fuzzy fuzzy(12, 5, 40, 0); //error, derror, correction and centre
 
-double kp = 5, kd = 0;
+double kp = 6, kd = 1.5;
 double error = 0, derror = 0, prevError = 0, correction = 0;
 double xError = 0, angleError = 0;
-int basePWM = 40;
+int basePWM = 120;
 
 volatile int lastEncodedRight = 0;
 volatile long encoderValueRight = 0;
@@ -79,10 +79,10 @@ double movingAvgFrontLeftV=0, movingAvgFrontRightV=0;
 void setup() {
   Serial.begin (9600);
 
-  pinMode(encoderPinRight1, INPUT); 
-  pinMode(encoderPinRight2, INPUT);
-  pinMode(encoderPinLeft1, INPUT); 
-  pinMode(encoderPinLeft2, INPUT);
+//  pinMode(encoderPinRight1, INPUT); 
+//  pinMode(encoderPinRight2, INPUT);
+//  pinMode(encoderPinLeft1, INPUT); 
+//  pinMode(encoderPinLeft2, INPUT);
   pinMode(leftFrontTrigPin, OUTPUT); 
   pinMode(leftFrontEchoPin, INPUT); 
   pinMode(leftBackTrigPin, OUTPUT); 
@@ -92,16 +92,16 @@ void setup() {
   pinMode(frontRightTrigPin, OUTPUT); 
   pinMode(frontRightEchoPin, INPUT);
 
-  digitalWrite(encoderPinRight1, HIGH); //turn pullup resistor on
-  digitalWrite(encoderPinRight2, HIGH); //turn pullup resistor on
-  digitalWrite(encoderPinLeft1, HIGH); //turn pullup resistor on
-  digitalWrite(encoderPinLeft2, HIGH); //turn pullup resistor on
+//  digitalWrite(encoderPinRight1, HIGH); //turn pullup resistor on
+//  digitalWrite(encoderPinRight2, HIGH); //turn pullup resistor on
+//  digitalWrite(encoderPinLeft1, HIGH); //turn pullup resistor on
+//  digitalWrite(encoderPinLeft2, HIGH); //turn pullup resistor on
 
   
-  attachInterrupt(5, updateEncoderRight, CHANGE); 
-  attachInterrupt(4, updateEncoderRight, CHANGE);
-  attachInterrupt(3, updateEncoderLeft, CHANGE); 
-  attachInterrupt(2, updateEncoderLeft, CHANGE);
+//  attachInterrupt(5, updateEncoderRight, CHANGE); 
+//  attachInterrupt(4, updateEncoderRight, CHANGE);
+//  attachInterrupt(3, updateEncoderLeft, CHANGE); 
+//  attachInterrupt(2, updateEncoderLeft, CHANGE);
 
   init_ultra();
 }
