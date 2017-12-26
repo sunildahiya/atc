@@ -70,7 +70,7 @@ void read_ultra(){
   leftFrontDist= leftFrontDur*0.034/2 + 4;
   leftBackDist= leftBackDur*0.034/2;
   
-  frontLeftDist= frontLeftDur*0.034/2;
+  frontLeftDist= frontLeftDur*0.034/2+6;
   frontRightDist= frontRightDur*0.034/2;
   }
 

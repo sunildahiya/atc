@@ -9,6 +9,8 @@
 #define frontUltraDist 47  
 #define forward 1
 #define backward -1
+#define front 1
+#define left -1
 double leftRefDist = 25;
 double frontRefDist = 25;
 
@@ -45,7 +47,7 @@ Driver motorLeft(motorLeftDirPin1, motorLeftDirPin2, motorLeftEnPin);
 //Fuzzy
 //Fuzzy fuzzy(12, 5, 40, 0); //error, derror, correction and centre
 
-double kp = 6, kd = 1.5;
+double kp = 7, kd = 2;
 double error = 0, derror = 0, prevError = 0, correction = 0;
 double xError = 0, angleError = 0;
 int basePWM = 120;
@@ -111,23 +113,9 @@ void loop(){
 //  apply_correction(1);
   read_ultra();
   find_moving_avg();
-  apply_ultra_correction(1);
-//  Serial.print(encoderValueLeft);
-//  Serial.print("\t"); 
-//  Serial.print(encoderValueRight);
-//  Serial.print("\t");
-//  Serial.print(x);
-//  Serial.print("\t");
-//  Serial.print(y);
-//  Serial.print("\t");
-//  Serial.print(angle);
-//  Serial.print("\t");  
-//  Serial.print(error);
-//  Serial.print("\t");
-//  Serial.print(derror);
-//  Serial.print("\t");
-//  Serial.println(correction);
-
+  calc_correction(backward, front, leftRefDist);
+  apply_correction(backward);
+  
   Serial.print(leftFrontDist);
   Serial.print("\t"); 
   Serial.print(leftBackDist);
@@ -136,7 +124,15 @@ void loop(){
   Serial.print("\t"); 
   Serial.print(movingAvgLeftBackV);
   Serial.print("\t");
-  Serial.print(leftRefDist);
+  Serial.print(frontLeftDist);
+  Serial.print("\t"); 
+  Serial.print(frontRightDist);
+  Serial.print("\t");
+  Serial.print(movingAvgFrontLeftV);
+  Serial.print("\t"); 
+  Serial.print(movingAvgFrontRightV);
+//  Serial.print("\t");
+//  Serial.print(leftRefDist);
   Serial.print("\t");
   Serial.print(angleError);
   Serial.print("\t");
@@ -155,5 +151,22 @@ void loop(){
 //  Serial.print(movingAvgFrontLeftV);
 //  Serial.print("\t"); 
 //  Serial.println(movingAvgFrontRightV);
+
+  
+//  Serial.print(encoderValueLeft);
+//  Serial.print("\t"); 
+//  Serial.print(encoderValueRight);
+//  Serial.print("\t");
+//  Serial.print(x);
+//  Serial.print("\t");
+//  Serial.print(y);
+//  Serial.print("\t");
+//  Serial.print(angle);
+//  Serial.print("\t");  
+//  Serial.print(error);
+//  Serial.print("\t");
+//  Serial.print(derror);
+//  Serial.print("\t");
+//  Serial.println(correction);
 }
 
