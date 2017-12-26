@@ -11,6 +11,9 @@
 #define backward -1
 #define front 1
 #define left -1
+#define c_clockwise 1
+#define c_anticlockwise -1
+#define rotDur 2400
 double leftRefDist = 25;
 double frontRefDist = 25;
 
@@ -51,6 +54,7 @@ double kp = 7, kd = 2;
 double error = 0, derror = 0, prevError = 0, correction = 0;
 double xError = 0, angleError = 0;
 int basePWM = 120;
+int baseRotatePWM = 70;
 
 volatile int lastEncodedRight = 0;
 volatile long encoderValueRight = 0;
@@ -77,7 +81,8 @@ double movingAvgFrontLeft[10];
 double movingAvgFrontRight[10];
 double movingAvgFrontLeftV=0, movingAvgFrontRightV=0;
 
-
+long start_i;
+int stop_b = -1;
 void setup() {
   Serial.begin (9600);
 
@@ -109,8 +114,40 @@ void setup() {
 }
 
 void loop(){
+//  if (stop_b == -1){
+//    rotate_dur(c_clockwise, rotDur);
+//    allign(left); 
+//  }
+  if (Serial.available()){
+    int c = Serial.parseInt();
+   if (c == 1){
+      Serial.println("Duration");
+      rotate_dur(c_clockwise, rotDur);
+      Serial.println("Allign");
+      allign(left);
+      read_ultra();
+      find_moving_avg();
+      Serial.println("<-------------End---------------->");
+      Serial.print(leftFrontDist);
+      Serial.print("\t"); 
+      Serial.print(leftBackDist);
+      Serial.print("\t");
+      Serial.print(movingAvgLeftFrontV);
+      Serial.print("\t"); 
+      Serial.print(movingAvgLeftBackV);
+      Serial.print("\t");
+      Serial.print(frontLeftDist);
+      Serial.print("\t"); 
+      Serial.print(frontRightDist);
+      Serial.print("\t");
+      Serial.print(movingAvgFrontLeftV);
+      Serial.print("\t"); 
+      Serial.println(movingAvgFrontRightV);
+    }
+  }
 //  calc_coord();
 //  apply_correction(1);
+/*
   read_ultra();
   find_moving_avg();
   calc_correction(backward, front, leftRefDist);
@@ -143,7 +180,7 @@ void loop(){
   Serial.print(derror);
   Serial.print("\t");
   Serial.println(correction);
-
+*/
 //  Serial.print(frontLeftDist);
 //  Serial.print("\t"); 
 //  Serial.print(frontRightDist);
