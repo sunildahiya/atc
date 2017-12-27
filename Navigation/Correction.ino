@@ -1,3 +1,27 @@
+void calc_correction(int dir, int sensor, int shiftRef, double angleRef = 0){
+  if (sensor == front)
+    angleError = (movingAvgFrontRightV-movingAvgFrontLeftV)*180/(frontUltraDist*3.14);
+  else if (sensor == left)
+    angleError = (movingAvgLeftFrontV-movingAvgLeftBackV)*180/(leftUltraDist*3.14);
+
+  angleError -= angleRef;
+  if (shiftRef != -1)
+    xError = (movingAvgLeftFrontV+movingAvgLeftBackV)/2 - shiftRef;
+  else
+    xError = 0;
+    
+  if (dir == 1)
+    error = 0.6*xError + 0.7*angleError;
+  else if(dir == -1)
+    error = 0.3*xError - 0.8*angleError;
+  derror = error-prevError;
+  prevError = error;
+  correction = kp*error + kd*derror;
+  correction = limit(correction, -45, 45);
+//  correction = fuzzy.centroid_correction(error, derror);
+//  correction = 0;
+}
+
 int limit(int value, int lowestValue, int highestValue){
   if (value < lowestValue)
     value = lowestValue;
@@ -11,15 +35,15 @@ void rotate_dur(int dir, int duration){
   int timePassed = 0;
   if (dir == c_clockwise){
     while(timePassed < duration){
-      motorRight.anticlockwise(baseRotatePWM);
-      motorLeft.clockwise(baseRotatePWM-28);
+      motorRight.anticlockwise(basePWMRotate_d-20);
+      motorLeft.clockwise(basePWMRotate_d);
       timePassed = millis()-start;
     }
   }
   else if(dir == c_anticlockwise){
     while(timePassed < duration){
-      motorRight.clockwise(baseRotatePWM);
-      motorLeft.anticlockwise(baseRotatePWM-28);
+      motorRight.clockwise(basePWMRotate_d-20);
+      motorLeft.anticlockwise(basePWMRotate_d);
       timePassed = millis()-start;
     }
   }
@@ -27,18 +51,18 @@ void rotate_dur(int dir, int duration){
   stop_b = 1;
 }
 
-void rotate(int dir){
+void rotate(int dir, int correction){
   if (dir == c_clockwise){
-      motorRight.anticlockwise(170);
-      motorLeft.clockwise(170);
+      motorRight.anticlockwise(basePWMRotate_s+correction);
+      motorLeft.clockwise(basePWMRotate_s+correction);
   }
   else if(dir == c_anticlockwise){
-      motorRight.clockwise(170);
-      motorLeft.anticlockwise(170);
+      motorRight.clockwise(basePWMRotate_s+correction);
+      motorLeft.anticlockwise(basePWMRotate_s+correction);
   }
 }
 
-void allign(int sensor){
+void allign(int sensor, double angleRef = 0.0){
   read_ultra();
   find_moving_avg();
   if (sensor == front)
@@ -46,25 +70,37 @@ void allign(int sensor){
   else if (sensor == left)
     angleError = (movingAvgLeftFrontV-movingAvgLeftBackV)*180/(leftUltraDist*3.14);
 
-  Serial.print("Angle error:\t");
-  Serial.println(angleError);
-  double kp = 2, kd = 0.2;
-  while (angleError < -1 || angleError > 1){
+//  angleError = angleRef-angleError;
+  angleError -= angleRef;
+  double allignKp = 2, allignKd = 0.0;
+  double allignDerror = 0;
+  double allignPrevError = angleError;
+  double allignCorrection = 0;
+  
+//  serial_print();
+  while (angleError < -1.6 || angleError > 1.6){
+    allignCorrection = allignKp*angleError + allignKd*allignDerror;
+    
     if (angleError > 0)
-      rotate(c_anticlockwise);
+      rotate(c_anticlockwise, allignCorrection);
     else
-      rotate(c_clockwise);
+      rotate(c_clockwise, allignCorrection);
+    read_ultra();
+    find_moving_avg();
     if (sensor == front)
       angleError = (movingAvgFrontRightV-movingAvgFrontLeftV)*180/(frontUltraDist*3.14);
     else if (sensor == left)
       angleError = (movingAvgLeftFrontV-movingAvgLeftBackV)*180/(leftUltraDist*3.14);
-    read_ultra();
-    find_moving_avg();
-    Serial.print("Angle error:\t");
-    Serial.println(angleError);
+//    angleError = angleRef-angleError;
+    angleError -= angleRef;
+    allignDerror = angleError - allignPrevError;
+    allignPrevError = angleError;
+    
+//    serial_print();
   }
-  Serial.print("Angle error:\t");
-  Serial.println(angleError);
+//  Serial.println("Out");
+//  Serial.print("Allign anglerror");
+//  Serial.println(angleError);
   apply_correction(0);
 }
 
@@ -75,32 +111,14 @@ void apply_correction(int dir){
   }
   else if (dir == backward){
     motorRight.anticlockwise(basePWM-correction);
-    motorLeft.anticlockwise(basePWM+correction-40);
+    motorLeft.anticlockwise(basePWM+correction-28);
   }
   else{
     motorRight.stall();
     motorLeft.stall();
-  }
+  } 
 }
 
-void calc_correction(int dir, int sensor, double reference){
-  if (sensor == front)
-    angleError = (movingAvgFrontRightV-movingAvgFrontLeftV)*180/(frontUltraDist*3.14);
-  else if (sensor == left)
-    angleError = (movingAvgLeftFrontV-movingAvgLeftBackV)*180/(leftUltraDist*3.14);
-  xError = (movingAvgLeftFrontV+movingAvgLeftBackV)/2 - reference;
-//  xError = 0;
-  if (dir == 1)
-    error = 0.6*xError + 0.7*angleError;
-  else if(dir == -1)
-    error = 0.6*xError - 0.7*angleError;
-  derror = error-prevError;
-  prevError = error;
-  correction = kp*error + kd*derror;
-  correction = limit(correction, -45, 45);
-//  correction = fuzzy.centroid_correction(error, derror);
-//  correction = 0;
-}
 
 //void apply_correction(int dir){
 //  angleError = angle*180;

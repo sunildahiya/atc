@@ -67,10 +67,10 @@ void read_ultra(){
   frontRightDur = pulseIn(frontRightEchoPin, HIGH);
 
   // Calculating the distance
-  leftFrontDist= leftFrontDur*0.034/2 + 4;
-  leftBackDist= leftBackDur*0.034/2;
+  leftFrontDist= leftFrontDur*0.034/2+2;
+  leftBackDist= leftBackDur*0.034/2+2;
   
-  frontLeftDist= frontLeftDur*0.034/2+6;
+  frontLeftDist= frontLeftDur*0.034/2+2;
   frontRightDist= frontRightDur*0.034/2;
   }
 
