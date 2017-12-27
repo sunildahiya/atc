@@ -61,10 +61,21 @@ double frontRefDist = 25;
 #define frontLeftEchoPin A9  
 #define frontRightTrigPin A5 
 #define frontRightEchoPin A4 
- 
+
+//Commode Mechanism Motor
+#define rackMotorDirPin 28
+#define rackMotorEnPin 10
+#define commodeMotorDirPin 30
+#define commodeMotorEnPin 11
+
 //Motor Driver Objects
 Driver motorRight(motorRightDirPin1, motorRightDirPin2, motorRightEnPin);
 Driver motorLeft(motorLeftDirPin1, motorLeftDirPin2, motorLeftEnPin);
+
+Driver rackMotor(rackMotorDirPin, rackMotorEnPin);
+Driver commodeMotor(commodeMotorDirPin, commodeMotorEnPin);
+
+
 
 //Fuzzy
 //Fuzzy fuzzy(12, 5, 40, 0); //error, derror, correction and centre
@@ -137,7 +148,24 @@ void setup() {
   init_ultra();
 }
 
+void loop(){
+  if (Serial.available()){
+    int v = Serial.read();
+//    if (v == 1){
+//      rackMotor.clockwise(120);
+//      delay(2000);
+//      rackMotor.stall();
+//    }
+//    if (v == 2){
+//      rackMotor.anticlockwise(120);
+//      delay(2000);
+//      rackMotor.stall();
+//    }
+    commodeMotor.clockwise(160);
+  }
+}
 
+/*
 void loop(){
   Serial.print("Stage:\t");
   Serial.println(stage);
@@ -239,4 +267,4 @@ void loop(){
 //  
   serial_print();
 }
-
+*/
