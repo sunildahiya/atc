@@ -5,8 +5,10 @@
 //Constants
 #define wheelSeparation 39
 #define wheelRadius 5
-#define leftUltraDist 26  
-#define frontUltraDist 30  
+#define leftUltraDist 33  
+#define frontUltraDist 25.5  
+#define leftBackOmniDist 40
+#define frontLeftOmniDist 18.5
 #define forward 1
 #define backward -1
 #define front 1
@@ -15,26 +17,33 @@
 #define c_anticlockwise -1
 #define rotDur 2400
 #define entryDist 130 
-#define marginDist 45
+#define marginDist 48
 #define sc_clean1FrontSStopDist 50
-#define sc_clean1LeftSStopDist 100 //To do
-#define sc_clean1LeftSRotAngle 18 //To do
-#define sc_clean1LeftSTiltDist 26
+#define sc_clean1LeftSStopDist 105 
+#define sc_clean1LeftSRotAngle 16
+#define sc_clean1LeftSTiltDist 16
 
 #define s_entry 1
 #define s_clean1LeftSAllign 2
 #define s_clean1LeftS 3
 #define s_clean1FrontS 4
 #define s_clean1FrontSB 5
-#define s_clean1LeftSRotSlight 6
-#define s_clean1LeftSB 7
+#define s_clean1LeftSB 6
+#define s_clean1LeftSRotSlight 7
 #define s_clean1FrontRightSShift 9 
 #define s_clean1LeftSRot90 10
 #define s_stop 11
 #define s_clean1LeftSTilt 12
 #define s_clean12clean2 13
-double leftRefDist = 18;
+
+#define s_clean2F 14
+#define s_clean2B 15
+#define s_clean2R 16
+#define s_clean2BC 17
+
+double leftRefDist = 20;
 double frontRefDist = 25;
+double sv_clean1LeftStopF = 0, sv_clean1LeftStopI = 0, sv_clean1FrontStop = 0;
 
 //Encoder Interrupt Pins
 #define encoderPinRight1 18
@@ -72,9 +81,9 @@ Driver motorLeft(motorLeftDirPin1, motorLeftDirPin2, motorLeftEnPin);
 double kp = 2, kd = 0;
 double error = 0, derror = 0, prevError = 0, correction = 0;
 double xError = 0, angleError = 0;
-int basePWM = 180;
-int basePWMRotate_d = 120;
-int basePWMRotate_s = 160;
+int basePWM = 100;
+int basePWMRotate_d = 100;
+int basePWMRotate_s = 130;
 volatile int lastEncodedRight = 0;
 volatile long encoderValueRight = 0;
 long prevEncoderValueRight = 0;
@@ -86,7 +95,7 @@ long prevEncoderValueLeft = 0;
 double x = 0, y = 0, angle = 0;
 
 long leftFrontDur = 0, leftBackDur = 0;
-long leftFrontDist = 0, leftBackDist = 0;
+double leftFrontDist = 0, leftBackDist = 0;
 
 double movingAvgLeftFront[10];
 double movingAvgLeftBack[10];
@@ -103,7 +112,7 @@ double movingAvgFrontLeftV=0, movingAvgFrontRightV=0;
 long start_i;
 int stop_b = -1;
 int stage = s_clean1LeftSAllign;
-
+//int stage = s_stop;
 void calc_correction(int dir, int sensor, int shiftRef, double angleRef = 0);
 void allign(int sensor, double angleRef = 0.0);
 
@@ -139,8 +148,13 @@ void setup() {
 
 
 void loop(){
-  Serial.print("Stage:\t");
-  Serial.println(stage);
+//  Serial.print("Stage:\t");
+//  Serial.println(stage);
+  if (Serial.available()){
+    int v = Serial.parseInt();
+    if (v == 1)
+      stage = s_stop;
+  }
   if(stage == s_clean1LeftSAllign){
     allign(left, 0.0);
     read_ultra();
@@ -148,6 +162,7 @@ void loop(){
 //    serial_print();
 //    leftRefDist = movingAvgLeftBackV;
     stage = s_clean1LeftS;
+//    stage = s_stop;
   }
   else if(stage == s_clean1LeftS){
     if (movingAvgFrontRightV > sc_clean1FrontSStopDist){
@@ -188,34 +203,95 @@ void loop(){
     }
   }
   else if(stage == s_clean1LeftSB){
-    if (movingAvgFrontLeftV < sc_clean1LeftSStopDist){
+    if (frontLeftDist < sc_clean1LeftSStopDist){
       read_ultra();
       find_moving_avg();
       calc_correction(backward, left, leftRefDist);
       apply_correction(backward);
     }
-    else
+    else{
+      apply_correction(0);
+      delay(500);
+      allign(left, 0);
+      delay(1000);
+      sv_clean1FrontStop = frontRightDist-87.63+frontLeftOmniDist;
       stage = s_clean1LeftSRotSlight;
+      Serial.println("Danger Zone");
+      Serial.print("frontRightDist");
+      Serial.println(frontRightDist);
+//      delay(10000);
+    }
   }
   else if(stage == s_clean1LeftSRotSlight){
     allign(left, sc_clean1LeftSRotAngle);
 //    serial_print();
     stage = s_clean1LeftSTilt;
+    delay(1000);
+    calc_correction(forward, left, -1);
+    sv_clean1LeftStopF = leftBackOmniDist*(1-tan(angleError*3.14/180))+sv_clean1FrontStop*tan(angleError*3.14/180)/cos(angleError*3.14/180)+leftBackDist-29;
+
+    Serial.print("sv_clean1FrontStop");
+    Serial.print("\t"); 
+    Serial.print("angleError");
+    Serial.print("\t"); 
+    Serial.print("leftBackDist");
+    Serial.print("\t");
+    Serial.println("sv_clean1LeftStopF");
+
+    
+    Serial.print(sv_clean1FrontStop);
+    Serial.print("\t"); 
+    Serial.print(angleError);
+    Serial.print("\t");
+    Serial.print(leftBackDist);
+    Serial.print("\t");
+    Serial.println(sv_clean1LeftStopF);
+//    delay(60000);
 //    stage = s_stop;
   }
+//  sc_clean1LeftSTiltDist
   else if(stage == s_clean1LeftSTilt){
-    if (movingAvgLeftBackV < sc_clean1LeftSTiltDist){
+    Serial.println(leftBackDist);
+    if (leftBackDist < sv_clean1LeftStopF){
       read_ultra();
       find_moving_avg();
 //      calc_correction(forward, left, leftRefDist);
       correction = 0;
       apply_correction(forward);
     }
-    else
+    else{
+      apply_correction(0);
       stage = s_clean12clean2;
+      delay(1000);  
+    }
   }
   else if(stage == s_clean12clean2){
-    rotate_dur(c_clockwise, 1600);
+    rotate_dur(c_clockwise, 4100);
+    allign(left, 0);
+    stage = s_clean2F;
+  }
+  else if(stage == s_clean2F){
+    if (frontLeftDist > 70){
+      read_ultra();
+      find_moving_avg();
+      calc_correction(forward, front, -1);
+      apply_correction(forward);
+    }
+    else
+      stage = s_clean2B;
+  }
+  else if(stage == s_clean2B){
+    if (frontLeftDist < 96){
+      read_ultra();
+      find_moving_avg();
+      calc_correction(backward, front, -1);
+      apply_correction(backward);
+    }
+    else
+      stage = s_clean2R;
+  }
+  else if(stage == s_clean2R){
+    rotate_dur(c_clockwise, 8300);
     allign(left, 0);
     stage = s_stop;
   }
@@ -234,9 +310,19 @@ void loop(){
 //    allign(left, 0.0);
 //    stage = s_stop;
 //  }
-  else if (stage = s_stop)
+  else if (stage = s_stop){
     apply_correction(0);
+    while (1){
+      read_ultra();
+      find_moving_avg();
+      calc_correction(forward, left, -1);
+      serial_print();
+    }
+  }
+    
 //  
-  serial_print();
+//  read_ultra();
+//  find_moving_avg();
+//  serial_print();
 }
 

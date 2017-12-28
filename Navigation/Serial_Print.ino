@@ -1,6 +1,8 @@
 void serial_print(){
 //  read_ultra();
 //  find_moving_avg();
+  Serial.print(stage);
+  Serial.print("\t");
   Serial.print(leftFrontDist);
   Serial.print("\t"); 
   Serial.print(leftBackDist);
