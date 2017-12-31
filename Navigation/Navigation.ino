@@ -165,6 +165,8 @@ void setup() {
 
 
 void loop(){
+//  rotate(c_clockwise,20);
+  
   serial_print();
   
   if(stage == s_clean1LeftSAllign){
@@ -188,7 +190,7 @@ void loop(){
   }
   else if(stage == s_clean1FrontS){
     serial_twoln("Chutiya:\t", stage);
-    if (frontRightDist > marginDist){
+    if (frontRightDist > marginDist+10){
       read_ultra();
       find_moving_avg();
       calc_correction(forward, front, -1);
@@ -269,14 +271,17 @@ void loop(){
 
   else if(stage == s_clean1F){
     serial_twoln("Chutiya:\t", stage);
-    if (frontRightDist > marginDist+20){
+    if (frontRightDist > marginDist+13){
       read_ultra();
       find_moving_avg();
       calc_correction(forward, front, -1);
       apply_correction(forward);
     }
-    else
+    else{
       stage = s_clean122;
+      apply_correction(0);
+      delay(1000);
+    }
   }
 
   else if(stage == s_clean122){
@@ -285,7 +290,7 @@ void loop(){
     find_moving_avg();
     serial_print();
     rotate_imu(c_clockwise, 90);
-    delay(400);
+    delay(600);
     recalibrate();
     allign(left, 0);
     stage = s_clean2F;
@@ -300,7 +305,9 @@ void loop(){
       apply_correction(forward);  
     }
     else{
+      apply_correction(0);
       stage = s_clean2R;
+      delay(1000);
     }
   }
 
@@ -317,19 +324,24 @@ void loop(){
 
   else if(stage == s_clean2P){
     serial_twoln("Chutiya:\t", stage);
-    if (frontLeftDist > marginDist+30){
+    if (frontLeftDist > marginDist+25){
       read_ultra();
       find_moving_avg();
       calc_correction(forward, front, -1);
       apply_correction(forward); 
     }
-    else
-      stage = s_clean223R;
+    else{
+      apply_correction(0);
+      stage = s_clean223R; 
+      delay(1000);
+    }
   }
 
   else if(stage == s_clean223R){
     serial_twoln("Chutiya:\t", stage);
-    rotate_imu(c_anticlockwise, 90);
+    recalibrate();
+    calc_correction(forward, left, -1);
+    rotate_imu(c_anticlockwise, 90+angleError);
     delay(300);
     recalibrate();
     allign(front, 0);
@@ -340,7 +352,7 @@ void loop(){
 
   else if(stage == s_clean223F){
     serial_twoln("Chutiya:\t", stage);
-    if (frontLeftDist > 80){
+    if (frontLeftDist > 108){
       read_ultra();
       find_moving_avg();
       correction = 0;
@@ -354,10 +366,9 @@ void loop(){
 
   else if(stage == s_clean223R2){
     serial_twoln("Chutiya:\t", stage);
-    rotate_imu(c_anticlockwise, 90);
-    delay(200);
     recalibrate();
-    allign(left, 0);
+    calc_correction(forward, front, -1);
+    rotate_imu(c_anticlockwise, 90+angleError);
     delay(200);
     recalibrate();
     stage = s_clean3F;
@@ -365,16 +376,21 @@ void loop(){
 
   else if(stage == s_clean3F){
     serial_twoln("Chutiya:\t", stage);
-     if (frontRightDist > 75){
+     if (frontRightDist > 95){
       read_ultra();
       find_moving_avg();
       correction = 0;
       apply_correction(forward);
      }
-     else
-      stage = s_clean32CR; 
+     else{
+      apply_correction(0);
+      stage = s_clean32CR;
+      delay(1000);
+     } 
   }
 
+  
+  
   else if(stage == s_clean32CR){
     serial_twoln("Chutiya:\t", stage);
     recalibrate();
@@ -401,5 +417,6 @@ void loop(){
 //  read_ultra();
 //  find_moving_avg();
   serial_print();
+  
 }
 
