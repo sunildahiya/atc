@@ -1,6 +1,7 @@
 #include <Servo.h>
 #include <Driver.h>
 #include <Fuzzy.h>
+#include <Wire.h>
 
 //Constants
 #define wheelSeparation 39
@@ -17,7 +18,7 @@
 #define c_anticlockwise -1
 #define rotDur 2400
 #define entryDist 130 
-#define marginDist 48
+#define marginDist 30
 #define sc_clean1FrontSStopDist 50
 #define sc_clean1LeftSStopDist 105 
 #define sc_clean1LeftSRotAngle 16
@@ -32,14 +33,24 @@
 #define s_clean1LeftSRotSlight 7
 #define s_clean1FrontRightSShift 9 
 #define s_clean1LeftSRot90 10
-#define s_stop 11
+#define s_stop -1
 #define s_clean1LeftSTilt 12
 #define s_clean12clean2 13
 
-#define s_clean2F 14
-#define s_clean2B 15
-#define s_clean2R 16
-#define s_clean2BC 17
+
+#define s_clean1LeftSAllign2 14
+#define s_clean1F 15
+#define s_clean122 16
+
+#define s_clean2F 17
+//#define s_clean2B 15
+#define s_clean2R 18
+#define s_clean2P 19
+#define s_clean223R 20
+#define s_clean223F 21
+#define s_clean223R2 22
+#define s_clean3F 23
+#define s_clean32CR 25
 
 double leftRefDist = 20;
 double frontRefDist = 25;
@@ -78,7 +89,7 @@ Driver motorLeft(motorLeftDirPin1, motorLeftDirPin2, motorLeftEnPin);
 //Fuzzy
 //Fuzzy fuzzy(12, 5, 40, 0); //error, derror, correction and centre
 
-double kp = 2, kd = 0;
+double kp = 10, kd = 0;
 double error = 0, derror = 0, prevError = 0, correction = 0;
 double xError = 0, angleError = 0;
 int basePWM = 100;
@@ -109,12 +120,17 @@ double movingAvgFrontLeft[10];
 double movingAvgFrontRight[10];
 double movingAvgFrontLeftV=0, movingAvgFrontRightV=0;
 
+uint32_t timer;
+uint8_t i2cData[14]; // Buffer for I2C data
+double gyroZ = 0, gyroZangle = 0;
+
 long start_i;
 int stop_b = -1;
 int stage = s_clean1LeftSAllign;
 //int stage = s_stop;
 void calc_correction(int dir, int sensor, int shiftRef, double angleRef = 0);
 void allign(int sensor, double angleRef = 0.0);
+
 
 void setup() {
   Serial.begin (9600);
@@ -142,30 +158,26 @@ void setup() {
 //  attachInterrupt(4, updateEncoderRight, CHANGE);
 //  attachInterrupt(3, updateEncoderLeft, CHANGE); 
 //  attachInterrupt(2, updateEncoderLeft, CHANGE);
-
+  init_imu();
   init_ultra();
+//  leftRefDist = leftBackDist;
 }
 
 
 void loop(){
-//  Serial.print("Stage:\t");
-//  Serial.println(stage);
-  if (Serial.available()){
-    int v = Serial.parseInt();
-    if (v == 1)
-      stage = s_stop;
-  }
+  serial_print();
+  
   if(stage == s_clean1LeftSAllign){
+    serial_twoln("Chutiya:\t", stage);
     allign(left, 0.0);
     read_ultra();
     find_moving_avg();
-//    serial_print();
-//    leftRefDist = movingAvgLeftBackV;
+    leftRefDist = movingAvgLeftBackV;
     stage = s_clean1LeftS;
-//    stage = s_stop;
   }
   else if(stage == s_clean1LeftS){
-    if (movingAvgFrontRightV > sc_clean1FrontSStopDist){
+    serial_twoln("Chutiya:\t", stage);
+    if (frontRightDist > sc_clean1FrontSStopDist){
       read_ultra();
       find_moving_avg();
       calc_correction(forward, left, leftRefDist);
@@ -175,34 +187,37 @@ void loop(){
       stage = s_clean1FrontS;
   }
   else if(stage == s_clean1FrontS){
-    if (movingAvgFrontRightV > marginDist){
+    serial_twoln("Chutiya:\t", stage);
+    if (frontRightDist > marginDist){
       read_ultra();
       find_moving_avg();
       calc_correction(forward, front, -1);
       apply_correction(forward);
       serial_print();
     }
-    else
+    else{
+      apply_correction(0);
       stage = s_clean1FrontSB;
+      delay(1000);
+      recalibrate();
+    }
   }
   else if(stage == s_clean1FrontSB){
-    if (movingAvgFrontRightV < sc_clean1FrontSStopDist){
+    serial_twoln("Chutiya:\t", stage);
+    if (frontRightDist < sc_clean1FrontSStopDist){
       read_ultra();
       find_moving_avg();
       calc_correction(backward, front, -1);
       apply_correction(backward);
     }
     else{
+//      apply_correction(0);
       stage = s_clean1LeftSB;
-      movingAvgLeftFrontV = leftFrontDist;
-      movingAvgLeftBackV = leftBackDist;
-      for (int i=0; i<10; i++){
-        movingAvgLeftFront[i] = leftFrontDist;
-        movingAvgLeftBack[i] = leftBackDist;
-      }
+      recalibrate();
     }
   }
   else if(stage == s_clean1LeftSB){
+    serial_twoln("Chutiya:\t", stage);
     if (frontLeftDist < sc_clean1LeftSStopDist){
       read_ultra();
       find_moving_avg();
@@ -216,113 +231,175 @@ void loop(){
       delay(1000);
       sv_clean1FrontStop = frontRightDist-87.63+frontLeftOmniDist;
       stage = s_clean1LeftSRotSlight;
-      Serial.println("Danger Zone");
-      Serial.print("frontRightDist");
-      Serial.println(frontRightDist);
-//      delay(10000);
     }
   }
   else if(stage == s_clean1LeftSRotSlight){
+    serial_twoln("Chutiya:\t", stage);
     allign(left, sc_clean1LeftSRotAngle);
-//    serial_print();
     stage = s_clean1LeftSTilt;
     delay(1000);
     calc_correction(forward, left, -1);
     sv_clean1LeftStopF = leftBackOmniDist*(1-tan(angleError*3.14/180))+sv_clean1FrontStop*tan(angleError*3.14/180)/cos(angleError*3.14/180)+leftBackDist-29;
 
-    Serial.print("sv_clean1FrontStop");
-    Serial.print("\t"); 
-    Serial.print("angleError");
-    Serial.print("\t"); 
-    Serial.print("leftBackDist");
-    Serial.print("\t");
-    Serial.println("sv_clean1LeftStopF");
-
-    
-    Serial.print(sv_clean1FrontStop);
-    Serial.print("\t"); 
-    Serial.print(angleError);
-    Serial.print("\t");
-    Serial.print(leftBackDist);
-    Serial.print("\t");
-    Serial.println(sv_clean1LeftStopF);
-//    delay(60000);
-//    stage = s_stop;
   }
-//  sc_clean1LeftSTiltDist
   else if(stage == s_clean1LeftSTilt){
-    Serial.println(leftBackDist);
+    serial_twoln("Chutiya:\t", stage);
     if (leftBackDist < sv_clean1LeftStopF){
       read_ultra();
       find_moving_avg();
-//      calc_correction(forward, left, leftRefDist);
       correction = 0;
       apply_correction(forward);
     }
     else{
       apply_correction(0);
-      stage = s_clean12clean2;
+      stage = s_clean1LeftSAllign2;
       delay(1000);  
     }
   }
-  else if(stage == s_clean12clean2){
-    rotate_dur(c_clockwise, 4100);
-    allign(left, 0);
-    stage = s_clean2F;
+
+  else if(stage == s_clean1LeftSAllign2){
+    serial_twoln("Chutiya:\t", stage);
+    read_ultra();
+    find_moving_avg();
+    rotate_imu(c_anticlockwise, angleError);
+    allign(left, 0.0);
+    recalibrate();
+    stage = s_clean1F;
   }
-  else if(stage == s_clean2F){
-    if (frontLeftDist > 70){
+
+  else if(stage == s_clean1F){
+    serial_twoln("Chutiya:\t", stage);
+    if (frontRightDist > marginDist+20){
       read_ultra();
       find_moving_avg();
       calc_correction(forward, front, -1);
       apply_correction(forward);
     }
     else
-      stage = s_clean2B;
+      stage = s_clean122;
   }
-  else if(stage == s_clean2B){
-    if (frontLeftDist < 96){
+
+  else if(stage == s_clean122){
+    serial_twoln("Chutiya:\t", stage);
+    read_ultra();
+    find_moving_avg();
+    serial_print();
+    rotate_imu(c_clockwise, 90);
+    delay(400);
+    recalibrate();
+    allign(left, 0);
+    stage = s_clean2F;
+  }
+
+  else if(stage == s_clean2F){
+    serial_twoln("Chutiya:\t", stage);
+    if (frontLeftDist > 125){
       read_ultra();
       find_moving_avg();
-      calc_correction(backward, front, -1);
-      apply_correction(backward);
+      correction = 0;
+      apply_correction(forward);  
+    }
+    else{
+      stage = s_clean2R;
+    }
+  }
+
+  else if(stage == s_clean2R){
+    serial_twoln("Chutiya:\t", stage);
+    rotate_imu(c_clockwise, 90);
+    delay(200);
+    recalibrate();
+    allign(front, 0);
+    delay(500);
+    recalibrate();
+    stage = s_clean2P;
+  }
+
+  else if(stage == s_clean2P){
+    serial_twoln("Chutiya:\t", stage);
+    if (frontLeftDist > marginDist+30){
+      read_ultra();
+      find_moving_avg();
+      calc_correction(forward, front, -1);
+      apply_correction(forward); 
     }
     else
-      stage = s_clean2R;
+      stage = s_clean223R;
   }
-  else if(stage == s_clean2R){
-    rotate_dur(c_clockwise, 8300);
+
+  else if(stage == s_clean223R){
+    serial_twoln("Chutiya:\t", stage);
+    rotate_imu(c_anticlockwise, 90);
+    delay(300);
+    recalibrate();
+    allign(front, 0);
+    delay(200);
+    recalibrate();
+    stage = s_clean223F;
+  }
+
+  else if(stage == s_clean223F){
+    serial_twoln("Chutiya:\t", stage);
+    if (frontLeftDist > 80){
+      read_ultra();
+      find_moving_avg();
+      correction = 0;
+      apply_correction(forward);
+    }
+    else{
+      stage = s_clean223R2;
+      apply_correction(0);
+    }
+  }
+
+  else if(stage == s_clean223R2){
+    serial_twoln("Chutiya:\t", stage);
+    rotate_imu(c_anticlockwise, 90);
+    delay(200);
+    recalibrate();
     allign(left, 0);
+    delay(200);
+    recalibrate();
+    stage = s_clean3F;
+  }
+
+  else if(stage == s_clean3F){
+    serial_twoln("Chutiya:\t", stage);
+     if (frontRightDist > 75){
+      read_ultra();
+      find_moving_avg();
+      correction = 0;
+      apply_correction(forward);
+     }
+     else
+      stage = s_clean32CR; 
+  }
+
+  else if(stage == s_clean32CR){
+    serial_twoln("Chutiya:\t", stage);
+    recalibrate();
+    rotate_imu(c_anticlockwise, 90);
+    delay(500);
+    allign(left, 0);
+    delay(500);
     stage = s_stop;
   }
-//  else if(stage == s_clean1LeftSB){
-//    if (movingAvgLeftBackV < sc_clean1LeftSStopDist){
-//      read_ultra();
-//      find_moving_avg();
-//      calc_correction(backward, left, -1);
-//      apply_correction(backward);
-//    }
-//    else
-//      stage = s_clean1LeftSAllign;
-//  }
-//  else if(stage == s_clean1LeftSRot90){
-//    rotate_dur(c_clockwise, rotDur);
-//    allign(left, 0.0);
-//    stage = s_stop;
-//  }
-  else if (stage = s_stop){
+
+  
+  else if (stage == s_stop){
+    serial_twoln("Chutiya:\t", stage);
     apply_correction(0);
     while (1){
       read_ultra();
       find_moving_avg();
-      calc_correction(forward, left, -1);
+//      read_imu();
+      calc_correction(forward, left, leftRefDist);
       serial_print();
     }
   }
-    
-//  
+      
 //  read_ultra();
 //  find_moving_avg();
-//  serial_print();
+  serial_print();
 }
 

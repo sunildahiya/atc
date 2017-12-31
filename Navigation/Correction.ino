@@ -119,6 +119,30 @@ void apply_correction(int dir){
   } 
 }
 
+void rotate_imu(int dir, int angle){
+  gyroZangle = 0;
+
+  Serial.println(angle);
+  angle = abs(angle);
+  while (abs(gyroZangle) < angle){
+    Serial.println(gyroZangle);
+    read_imu();
+    if (dir == c_clockwise){
+      motorRight.anticlockwise(basePWMRotate_d-20);
+      motorLeft.clockwise(basePWMRotate_d);
+    }
+    else if(dir == c_anticlockwise){
+      motorRight.clockwise(basePWMRotate_d-20);
+      motorLeft.anticlockwise(basePWMRotate_d);
+    }
+    delay(2);
+  }
+  motorRight.stall();
+  motorLeft.stall();
+  
+}
+
+
 
 //void apply_correction(int dir){
 //  angleError = angle*180;
