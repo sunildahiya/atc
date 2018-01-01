@@ -14,6 +14,8 @@
 #define backward -1
 #define front 1
 #define left -1
+#define up 1
+#define down -1
 #define c_clockwise 1
 #define c_anticlockwise -1
 #define rotDur 2400
@@ -23,6 +25,10 @@
 #define sc_clean1LeftSStopDist 105 
 #define sc_clean1LeftSRotAngle 16
 #define sc_clean1LeftSTiltDist 16
+
+
+#define rackIRPin A0
+#define commodeIRPin A1
 
 #define s_entry 1
 #define s_clean1LeftSAllign 2
@@ -51,6 +57,7 @@
 #define s_clean223R2 22
 #define s_clean3F 23
 #define s_clean32CR 25
+#define s_clean32CB 26
 
 double leftRefDist = 20;
 double frontRefDist = 25;
@@ -63,12 +70,10 @@ double sv_clean1LeftStopF = 0, sv_clean1LeftStopI = 0, sv_clean1FrontStop = 0;
 #define encoderPinLeft2 21
 
 //Motor Driver Pins
-#define motorRightEnPin 8
-#define motorRightDirPin1 39
-#define motorRightDirPin2 37
-#define motorLeftEnPin 4
-#define motorLeftDirPin1 23
-#define motorLeftDirPin2 22
+#define motorRightEnPin 11
+#define motorRightDirPin 30
+#define motorLeftEnPin 10
+#define motorLeftDirPin 28
 
 //Ultrasonic Sensors Left
 #define leftFrontTrigPin A6 
@@ -81,20 +86,40 @@ double sv_clean1LeftStopF = 0, sv_clean1LeftStopI = 0, sv_clean1FrontStop = 0;
 #define frontLeftEchoPin A9  
 #define frontRightTrigPin A5 
 #define frontRightEchoPin A4 
+
+//Commode Mechanism
+#define commodeRackEnPin 46
+#define commodeRackDirPin 32
+#define commodeCleanEnPin 44
+#define commodeCleanDirPin 34
+
+//Floor Mechanism
+#define rollerEnPin 4
+#define rollerDirPin1 22
+#define rollerDirPin2 23
+#define mopEnPin 8
+#define mopDirPin1 39
+#define mopDirPin2 37
  
 //Motor Driver Objects
-Driver motorRight(motorRightDirPin1, motorRightDirPin2, motorRightEnPin);
-Driver motorLeft(motorLeftDirPin1, motorLeftDirPin2, motorLeftEnPin);
+Driver motorRight(motorRightDirPin, motorRightEnPin);
+Driver motorLeft(motorLeftDirPin, motorLeftEnPin);
+
+Driver commodeRackMotor(commodeRackDirPin, commodeRackEnPin);
+Driver commodeCleanMotor(commodeCleanDirPin, commodeCleanEnPin);
+
+Driver rollerMotor(rollerDirPin1, rollerDirPin2, rollerEnPin);
+Driver mopMotor(mopDirPin1, mopDirPin2, mopEnPin);
 
 //Fuzzy
 //Fuzzy fuzzy(12, 5, 40, 0); //error, derror, correction and centre
 
-double kp = 10, kd = 0;
+double kp = 10, kd = 1;
 double error = 0, derror = 0, prevError = 0, correction = 0;
 double xError = 0, angleError = 0;
-int basePWM = 100;
-int basePWMRotate_d = 100;
-int basePWMRotate_s = 130;
+int basePWM = 140;
+int basePWMRotate_d = 140;
+int basePWMRotate_s = 140;
 volatile int lastEncodedRight = 0;
 volatile long encoderValueRight = 0;
 long prevEncoderValueRight = 0;
@@ -147,13 +172,19 @@ void setup() {
   pinMode(frontLeftEchoPin, INPUT); 
   pinMode(frontRightTrigPin, OUTPUT); 
   pinMode(frontRightEchoPin, INPUT);
-
+  
+  pinMode(commodeIRPin, INPUT);
+  pinMode(rackIRPin, INPUT);
+  
+//  commodeCleanMotor.clockwise(55);
+//  mopMotor.anticlockwise(55);
+//  rollerMotor.clockwise(55);
 //  digitalWrite(encoderPinRight1, HIGH); //turn pullup resistor on
 //  digitalWrite(encoderPinRight2, HIGH); //turn pullup resistor on
 //  digitalWrite(encoderPinLeft1, HIGH); //turn pullup resistor on
 //  digitalWrite(encoderPinLeft2, HIGH); //turn pullup resistor on
 
-  
+//  rotate_dur(c_clockwise, 50000);
 //  attachInterrupt(5, updateEncoderRight, CHANGE); 
 //  attachInterrupt(4, updateEncoderRight, CHANGE);
 //  attachInterrupt(3, updateEncoderLeft, CHANGE); 
@@ -165,6 +196,8 @@ void setup() {
 
 
 void loop(){
+//  serial_input_ctrl();
+  
 //  rotate(c_clockwise,20);
   
   serial_print();
@@ -220,7 +253,7 @@ void loop(){
   }
   else if(stage == s_clean1LeftSB){
     serial_twoln("Chutiya:\t", stage);
-    if (frontLeftDist < sc_clean1LeftSStopDist){
+    if (frontLeftDist < sc_clean1LeftSStopDist-10){
       read_ultra();
       find_moving_avg();
       calc_correction(backward, left, leftRefDist);
@@ -271,7 +304,7 @@ void loop(){
 
   else if(stage == s_clean1F){
     serial_twoln("Chutiya:\t", stage);
-    if (frontRightDist > marginDist+13){
+    if (frontRightDist > marginDist+10){
       read_ultra();
       find_moving_avg();
       calc_correction(forward, front, -1);
@@ -341,7 +374,7 @@ void loop(){
     serial_twoln("Chutiya:\t", stage);
     recalibrate();
     calc_correction(forward, left, -1);
-    rotate_imu(c_anticlockwise, 90+angleError);
+    rotate_imu(c_anticlockwise, 90);
     delay(300);
     recalibrate();
     allign(front, 0);
@@ -376,7 +409,7 @@ void loop(){
 
   else if(stage == s_clean3F){
     serial_twoln("Chutiya:\t", stage);
-     if (frontRightDist > 95){
+     if (frontRightDist > 88){
       read_ultra();
       find_moving_avg();
       correction = 0;
@@ -398,10 +431,24 @@ void loop(){
     delay(500);
     allign(left, 0);
     delay(500);
+    stage = s_clean32CB;
+    recalibrate();
+    
+  }
+
+  else if(stage == s_clean32CB){
+    serial_twoln("Chutiya:\t", stage);
+    correction = 0;
+    while(digitalRead(commodeIRPin) == 1)
+      apply_correction(backward);
+    apply_correction(0);
+    delay(1000);
     stage = s_stop;
   }
 
-  
+//  else if(stage == s_clean32CF){
+//    
+//  }
   else if (stage == s_stop){
     serial_twoln("Chutiya:\t", stage);
     apply_correction(0);
@@ -413,10 +460,13 @@ void loop(){
       serial_print();
     }
   }
+  
       
 //  read_ultra();
 //  find_moving_avg();
-  serial_print();
+//  serial_print();
   
+//  Serial.println(digitalRead(commodeIRPin));
+
 }
 

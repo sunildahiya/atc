@@ -125,11 +125,21 @@ void serial_print(){
 //    stage = s_stop;
 }
 
+
+
 void serial_input_ctrl(){
   if (Serial.available()){
     int v = Serial.parseInt();
-    if (v == 1)
-      stage = s_stop;
+    if (v == 1){
+       commodeRackMotor.anticlockwise(35);
+        Serial.print("come");
+    }
+//      commodeRackMotor.anticlockwise(35);
+    if (v == 2)
+      commodeRackMotor.clockwise(55);
+    if (v == 3)
+      commodeRackMotor.stall();
+//      stage = s_stop;
   } 
 }
 

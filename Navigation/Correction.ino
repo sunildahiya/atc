@@ -35,14 +35,14 @@ void rotate_dur(int dir, int duration){
   int timePassed = 0;
   if (dir == c_clockwise){
     while(timePassed < duration){
-      motorRight.anticlockwise(basePWMRotate_d-20);
+      motorRight.anticlockwise(basePWMRotate_d);
       motorLeft.clockwise(basePWMRotate_d);
       timePassed = millis()-start;
     }
   }
   else if(dir == c_anticlockwise){
     while(timePassed < duration){
-      motorRight.clockwise(basePWMRotate_d-20);
+      motorRight.clockwise(basePWMRotate_d);
       motorLeft.anticlockwise(basePWMRotate_d);
       timePassed = millis()-start;
     }
@@ -105,13 +105,14 @@ void allign(int sensor, double angleRef = 0.0){
 }
 
 void apply_correction(int dir){
+  //-,+
   if (dir == forward){
-    motorRight.clockwise(basePWM-correction);
-    motorLeft.clockwise(basePWM+correction-28);
+    motorRight.clockwise(basePWM+correction);
+    motorLeft.clockwise(basePWM-correction);
   }
   else if (dir == backward){
-    motorRight.anticlockwise(basePWM-correction);
-    motorLeft.anticlockwise(basePWM+correction-28);
+    motorRight.anticlockwise(basePWM+correction);
+    motorLeft.anticlockwise(basePWM-correction);
   }
   else{
     motorRight.stall();
@@ -140,6 +141,25 @@ void rotate_imu(int dir, int angle){
   motorRight.stall();
   motorLeft.stall();
   
+}
+
+void move_rack(int dir){
+  int delay_ = 100;
+  long initial_ = millis();
+  long timePassed = 0;
+  if (dir == up){
+    while (timePassed < delay_){
+      commodeRackMotor.clockwise(35);
+      timePassed = millis()-initial_;
+    }
+    commodeRackMotor.stall();
+  }
+  if (dir == down){
+    while(digitalRead(rackIRPin) == 0)
+      commodeRackMotor.anticlockwise(35); 
+    commodeRackMotor.stall();
+  }
+ 
 }
 
 
