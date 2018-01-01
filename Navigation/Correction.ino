@@ -53,12 +53,12 @@ void rotate_dur(int dir, int duration){
 
 void rotate(int dir, int correction){
   if (dir == c_clockwise){
-      motorRight.anticlockwise(basePWMRotate_s-correction);
-      motorLeft.clockwise(basePWMRotate_s-correction);
+      motorRight.anticlockwise(basePWMRotate_s+correction);
+      motorLeft.clockwise(basePWMRotate_s+correction);
   }
   else if(dir == c_anticlockwise){
-      motorRight.clockwise(basePWMRotate_s-correction);
-      motorLeft.anticlockwise(basePWMRotate_s-correction);
+      motorRight.clockwise(basePWMRotate_s+correction);
+      motorLeft.anticlockwise(basePWMRotate_s+correction);
   }
 }
 
@@ -129,12 +129,12 @@ void rotate_imu(int dir, int angle){
     Serial.println(gyroZangle);
     read_imu();
     if (dir == c_clockwise){
-      motorRight.anticlockwise(basePWMRotate_d-20);
-      motorLeft.clockwise(basePWMRotate_d);
+      motorRight.anticlockwise(basePWMRotate_imu);
+      motorLeft.clockwise(basePWMRotate_imu);
     }
     else if(dir == c_anticlockwise){
-      motorRight.clockwise(basePWMRotate_d-20);
-      motorLeft.anticlockwise(basePWMRotate_d);
+      motorRight.clockwise(basePWMRotate_imu);
+      motorLeft.anticlockwise(basePWMRotate_imu);
     }
     delay(2);
   }
@@ -143,22 +143,68 @@ void rotate_imu(int dir, int angle){
   
 }
 
-void move_rack(int dir){
-  int delay_ = 100;
+void move_rack(int dir, int delay_){
   long initial_ = millis();
   long timePassed = 0;
   if (dir == up){
     while (timePassed < delay_){
-      commodeRackMotor.clockwise(35);
+      commodeRackMotor.clockwise(70);
       timePassed = millis()-initial_;
     }
-    commodeRackMotor.stall();
   }
+  
   if (dir == down){
-    while(digitalRead(rackIRPin) == 0)
-      commodeRackMotor.anticlockwise(35); 
-    commodeRackMotor.stall();
+    while (timePassed < delay_){
+      commodeRackMotor.anticlockwise(40);
+      timePassed = millis()-initial_;
+    }
   }
+}
+
+void move_rack(int dir){
+  
+  if (dir == up){
+    Serial.println("Up Start");
+    if (digitalRead(rackIRPin) == 0){
+      Serial.println(1);
+      move_rack(up, 200);
+      while (digitalRead(rackIRPin) == 0)
+        commodeRackMotor.clockwise(70);
+      Serial.println(1.5);
+      move_rack(up, 200);
+      while (digitalRead(rackIRPin) == 1)
+        commodeRackMotor.clockwise(70);
+    }
+    else{
+      Serial.println(2);
+      move_rack(up, 200);
+      while (digitalRead(rackIRPin) == 1)
+        commodeRackMotor.clockwise(70);
+    }
+    Serial.println("Up Finish");
+  }
+  
+  if (dir == down){
+    Serial.println("Down Start");
+    if (digitalRead(rackIRPin) == 0){
+      Serial.println(1);
+      move_rack(down, 200);
+      while (digitalRead(rackIRPin) == 0)
+        commodeRackMotor.anticlockwise(40);
+      move_rack(down, 200);
+      Serial.println(1.5);
+      while (digitalRead(rackIRPin) == 1)
+        commodeRackMotor.anticlockwise(40);
+    }
+    else{
+      Serial.println(2);
+      move_rack(down, 200);
+      while (digitalRead(rackIRPin) == 1)
+        commodeRackMotor.anticlockwise(40);
+    }
+    Serial.println("Down Finish");
+  }
+  commodeRackMotor.stall();
  
 }
 
