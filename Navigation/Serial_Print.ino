@@ -131,12 +131,12 @@ void serial_input_ctrl(){
   if (Serial.available()){
     int v = Serial.parseInt();
     if (v == 1){
-       commodeRackMotor.anticlockwise(35);
+       commodeRackMotor.anticlockwise(110);
         Serial.print("come");
     }
 //      commodeRackMotor.anticlockwise(35);
     if (v == 2)
-      commodeRackMotor.clockwise(55);
+      commodeRackMotor.clockwise(110);
     if (v == 3)
       commodeRackMotor.stall();
 //      stage = s_stop;

@@ -2,6 +2,7 @@
 #include <Driver.h>
 #include <Fuzzy.h>
 #include <Wire.h>
+#include <MPU9250.h>
 
 //Constants
 #define wheelSeparation 39
@@ -135,9 +136,9 @@ Driver mopMotor(mopDirPin1, mopDirPin2, mopEnPin);
 double kp = 10, kd = 1;
 double error = 0, derror = 0, prevError = 0, correction = 0;
 double xError = 0, angleError = 0;
-int basePWM = 90;
-int basePWMRotate_d = 90;
-int basePWMRotate_imu = 110;
+int basePWM = 130;
+int basePWMRotate_d = 120;
+int basePWMRotate_imu = 130;
 int basePWMRotate_s = 90;
 volatile int lastEncodedRight = 0;
 volatile long encoderValueRight = 0;
@@ -164,9 +165,10 @@ double movingAvgFrontLeft[10];
 double movingAvgFrontRight[10];
 double movingAvgFrontLeftV=0, movingAvgFrontRightV=0;
 
-uint32_t timer;
-uint8_t i2cData[14]; // Buffer for I2C data
-double gyroZ = 0, gyroZangle = 0;
+int16_t gyro[3] = {0, 0, 0};
+MPU9250 jholImu;
+double timer = 0;
+double gyroZangle = 0;
 
 long start_i;
 int stop_b = -1;
@@ -176,9 +178,10 @@ void calc_correction(int dir, int sensor, int shiftRef, double angleRef = 0);
 void allign(int sensor, double angleRef = 0.0);
 //void move_rack(int dir, int delay_ = -1);
 
+
 void setup() {
   Serial.begin (9600);
-
+  
   pinMode(leftFrontTrigPin, OUTPUT); 
   pinMode(leftFrontEchoPin, INPUT); 
   pinMode(leftBackTrigPin, OUTPUT); 
@@ -190,16 +193,21 @@ void setup() {
   
   pinMode(commodeIRPin, INPUT);
   pinMode(rackIRPin, INPUT);
-  
 //  commodeCleanMotor.clockwise(55);
 //  mopMotor.anticlockwise(55);
 //  rollerMotor.clockwise(55);
-  init_imu();
+  jholImu.initMPU9250();
+  timer = micros();
+//  gyroZangle = 0;
+//  while (1){
+//    read_imu();
+//    Serial.println(gyroZangle);
+//  }
   init_ultra();
 //  while (!Serial.available());
 //  while (!Serial.available());
-  rollerMotor.anticlockwise(0);
-  reset_rack();
+//  rollerMotor.anticlockwise(0);
+//  reset_rack();
 }
 
 
@@ -330,7 +338,7 @@ void loop(){
     allign(left, 0);
     long initial_ = millis();
     long timePassed = 0;
-    while (timePassed < 200){
+    while (timePassed < 600){
       correction = 0;
       apply_correction(forward);
       timePassed = millis()-initial_;
@@ -451,7 +459,7 @@ void loop(){
       apply_correction(backward);
     apply_correction(0);
     delay(1000);
-    stage = s_cleanCommode;
+    stage = s_cleanCF;
     recalibrate();
   }
 
