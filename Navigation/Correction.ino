@@ -123,8 +123,10 @@ void apply_correction(int dir){
 void rotate_imu(int dir, int angle){
   gyroZangle = 0;
 
+  Serial.println("Gyro");
   Serial.println(angle);
   angle = abs(angle);
+  timer = micros();
   while (abs(gyroZangle) < angle){
     Serial.println(gyroZangle);
     read_imu();
@@ -141,6 +143,14 @@ void rotate_imu(int dir, int angle){
   motorRight.stall();
   motorLeft.stall();
   
+}
+
+void reset_rack(){
+  if (digitalRead(rackIRPin) == 0){
+    move_rack(up, 100);
+    while (digitalRead(rackIRPin) == 1)
+      commodeRackMotor.clockwise(70);
+  }
 }
 
 void move_rack(int dir, int delay_){
