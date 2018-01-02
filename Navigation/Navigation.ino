@@ -27,13 +27,17 @@
 #define sc_clean1LeftSRotAngle 16
 #define sc_clean1LeftSTiltDist 16
 
-#define sc_clean1FStopDist 27
+#define sc_clean1FStopDist 32
 #define sc_clean2FStopDist 115
 #define sc_clean2PStopDist 40
 #define sc_clean3FStopDist 90
 #define sc_clean3PStopDist 70
 #define sc_cleanCFStopDist 110
-#define s_clean4BStopDist 70
+#define sc_clean4BStopDist 70
+#define sc_clean5BStopDist 70
+#define sc_cleanRetFStopDist 30
+#define sc_clean4RSlight 15
+#define sc_clean5FStopDist 32
 
 #define rackIRPin A0
 #define commodeIRPin A1
@@ -64,8 +68,6 @@
 #define s_clean3P 23
 #define s_clean32C 25
 #define s_cleanCB 26
-//#define s_cleanCF 27
-
 
 #define s_cleanCommode 27
 
@@ -74,8 +76,19 @@
 #define s_clean3P2 30
 #define s_clean324 31
 #define s_clean4F 32
+#define s_clean4RSlight 42
 #define s_clean4B 33
 
+#define s_clean425 34
+
+#define s_clean5F 35
+#define s_clean5R 36
+#define s_clean5P 37
+#define s_clean5B 38
+#define s_cleanRetR 39
+#define s_cleanRetF 40
+#define s_cleanRetFinish 41
+ 
 
 
 double leftRefDist = 20;
@@ -545,12 +558,80 @@ void loop(){
     else{
       apply_correction(0);
       delay(1000);
-      stage = s_clean4B;
+      stage = s_clean4RSlight;
     }
   }
 
+  else if(stage == s_clean4RSlight){
+    rotate_imu(c_anticlockwise, sc_clean4RSlight);
+    delay(1000);
+    stage = s_clean4B;
+  }
+
   else if(stage == s_clean4B){
-    if (frontRightDist < s_clean4BStopDist){
+    if (frontRightDist < sc_clean4BStopDist){
+      read_ultra();
+      correction = 0;
+      apply_correction(backward);
+    }
+    else{
+      apply_correction(0);
+      stage = s_clean425;
+      delay(1000);
+    }
+  }
+
+  else if(stage == s_clean425){
+    recalibrate();
+    rotate_imu(c_clockwise, 90+sc_clean4RSlight);
+    delay(1000);
+    allign(front, 0);
+    delay(1000);
+    stage = s_clean5F;
+    recalibrate();
+  }
+
+  else if(stage == s_clean5F){
+    if (frontRightDist > sc_clean5FStopDist){
+      read_ultra();
+      find_moving_avg();
+      calc_correction(forward, front, -1);
+      apply_correction(forward);
+    }
+    else{
+      apply_correction(0);
+      stage = s_clean5R;
+      delay(1000);
+    }
+  }
+
+  else if(stage == s_clean5R){
+    rotate_imu(c_anticlockwise, 90);
+    delay(1000);
+    recalibrate();
+    allign(front, 0);
+    delay(1000);
+    stage = s_clean5P;
+    recalibrate();
+  }
+
+  else if(stage == s_clean5P){
+    if (frontRightDist > marginDist){
+      read_ultra();
+      find_moving_avg();
+      calc_correction(forward, front, -1);
+      apply_correction(forward);
+    }
+    else{
+      apply_correction(0);
+      delay(1000);
+      stage = s_clean5B;
+      recalibrate();
+    }
+  }
+
+  else if(stage == s_clean5B){
+    if (frontRightDist < sc_clean5BStopDist){
       read_ultra();
       find_moving_avg();
       calc_correction(backward, front, -1);
@@ -558,20 +639,44 @@ void loop(){
     }
     else{
       apply_correction(0);
-      stage = s_stop;
+      stage = s_cleanRetR;
       delay(1000);
     }
   }
 
-//  else if(stage == 
-  
-//  else if(stage == s_clean425){
-//    recalibrate();
-//    read_ultra();
-//    find_moving_avg();
-//    calc_correction(forward, front, -1);
-//    rotate_imu(c_anticlockwise, 90
-//  }
+  else if(stage == s_cleanRetR){
+    rotate_imu(c_anticlockwise, 180);
+    delay(1000);
+    recalibrate();
+    allign(left, 0);
+    delay(1000);
+    stage = s_cleanRetF;
+    recalibrate();
+    leftRefDist = leftBackDist;
+  }
+
+  else if(stage == s_cleanRetF){
+    if (frontRightDist > sc_cleanRetFStopDist){
+      read_ultra();
+      find_moving_avg();
+      calc_correction(forward, left, leftRefDist);
+      apply_correction(forward);
+    }
+    else{
+      apply_correction(0);
+      stage = s_cleanRetFinish;
+      delay(1000);
+    }
+  }
+
+  else if(stage == s_cleanRetFinish){
+    rotate_imu(c_clockwise, 90);
+    delay(1000);
+    recalibrate();
+    allign(left, 0);
+    delay(1000);
+    stage = s_stop;
+  }
   
   else if (stage == s_stop){
     serial_twoln("Chutiya:\t", stage);
@@ -589,8 +694,5 @@ void loop(){
 //  read_ultra();
 //  find_moving_avg();
 //  serial_print();
-  
-//  Serial.println(digitalRead(commodeIRPin));
 
 }
-
