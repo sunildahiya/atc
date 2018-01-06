@@ -36,25 +36,29 @@ def merge_blobs(mainBlobs, splitBlobs, maxDist):
         mainBlobs.append(blob)
         i += 1
 
-
     mainBlobs = sorted(mainBlobs, key=lambda blob: blob[1], reverse=True)
     mainBlobs_copy = list(mainBlobs)
     mainBlobs = []
     i = 0
     j = 0
     while (i < len(mainBlobs_copy)):
-        count = 1
-        mainBlobs.append(mainBlobs_copy[i])
+        count = mainBlobs_copy[i][1]
+        blob = mainBlobs_copy[i]
+        blob[0].__mul__(count)
+        j = 0
         while (j < len(splitBlobs)):
-            if (mainBlobs[-1][0].distance_to(splitBlobs[j][0]) < maxDist):
-                mainBlobs[-1][0].__add__(mainBlobs_copy[j][0])
-                mainBlobs[-1][1] = mainBlobs[-1][1] + mainBlobs_copy[j][1]
-                del splitBlobs[j]
-                j -= 1
-                count += 1
+            if (splitBlobs[j][1] == -1):
+                j += 1
+                continue
+            if (mainBlobs_copy[i][0].distance_to(splitBlobs[j][0]) < maxDist):
+                splitBlobs[j][0].__mul__( splitBlobs[j][1] )
+                blob[0].__add__( splitBlobs[j][0] )
+                count += splitBlobs[j][1]
+                splitBlobs[j][1] = -1
             j += 1
-        mainBlobs[-1][0].__div__(count);
-        mainBlobs[-1][0].integerize()    
+        blob[0].__div__(count)
+        blob[1] = count
+        mainBlobs.append(blob)  
         i += 1
 
     return mainBlobs
