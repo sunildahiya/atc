@@ -48,7 +48,6 @@ void rotate_dur(int dir, int duration){
     }
   }
   apply_correction(0);
-  stop_b = 1;
 }
 
 void rotate(int dir, int correction){
