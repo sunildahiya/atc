@@ -128,7 +128,9 @@ void serial_print(){
 
 
 void serial_input_ctrl(){
+  Serial.println("Input");
   if (Serial.available()){
+    Serial.println("Come");
     int v = Serial.parseInt();
     if (v == 1){
        commodeRackMotor.anticlockwise(110);

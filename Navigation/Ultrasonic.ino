@@ -67,11 +67,11 @@ void read_ultra(){
   frontRightDur = pulseIn(frontRightEchoPin, HIGH);
 
   // Calculating the distance
-  leftFrontDist= leftFrontDur*0.034/2-1;
-  leftBackDist= leftBackDur*0.034/2+2;
+  leftFrontDist= leftFrontDur*0.034/2-1+2;
+  leftBackDist= leftBackDur*0.034/2+2+3;
   
-  frontLeftDist= frontLeftDur*0.034/2-1;
-  frontRightDist= frontRightDur*0.034/2;
+  frontLeftDist= frontLeftDur*0.034/2-1+2;
+  frontRightDist= frontRightDur*0.034/2+2;
   }
 
 void find_moving_avg(){

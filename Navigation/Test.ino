@@ -1,16 +1,16 @@
-void check_motor(){
+void test_motor(){
   commodeCleanMotor.clockwise(55);
   mopMotor.anticlockwise(55);
   rollerMotor.clockwise(55);
   motorRight.clockwise(55);
   motorLeft.clockwise(55);
 }
-void check_rack_motor(){
+void test_rack_motor(){
   while(1)
     serial_input_ctrl();
 }
 
-void check_rack_IR(){
+void test_rack_IR(){
   commodeCleanMotor.anticlockwise(130);
   move_rack(down, 200);
   move_rack(down);
@@ -19,7 +19,15 @@ void check_rack_IR(){
   commodeCleanMotor.stall();
 }
 
-void check_imu(){
+void test_ultra(){
+  while(1){
+    read_ultra();
+    find_moving_avg();
+    serial_print();
+  }
+}
+
+void test_imu(){
   while(1){
     read_imu();
     serial_twoln("GyroAngle:\t", gyroZangle);
