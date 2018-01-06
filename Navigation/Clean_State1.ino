@@ -1,4 +1,5 @@
 void clean_state1_ent1(){
+    Serial.println("Entry");
     if(stage == s_clean1LeftSAllign){
       serial_twoln("Chutiya:\t", stage);
       allign(left, 0.0);
@@ -68,6 +69,7 @@ void clean_state1_ent1(){
     else if(stage == s_clean1LeftSRotSlight){
       serial_twoln("Chutiya:\t", stage);
       allign(left, sc_clean1LeftSRotAngle);
+//      rotate_imu(c_clockwise, sc_clean1LeftSRotAngle);
       stage = s_clean1LeftSTilt;
       delay(1000);
       calc_correction(forward, left, -1);
@@ -137,6 +139,7 @@ void clean_state1_ent1(){
 void clean_state1_ent2(){
     state = 2;
     stage = s_clean2F;
+    finishStarting = true;
 }
 
 void clean_state1_ent3(){
@@ -172,7 +175,7 @@ void clean_state1_ent3(){
       stage = s3_clean2FFS;
   }
   else if(stage == s3_clean2FFS){
-    if (frontRightDist > marginDist){
+    if (frontRightDist > marginDist+15){
       read_ultra();
       find_moving_avg();
       calc_correction(forward, front, -1);
@@ -187,9 +190,10 @@ void clean_state1_ent3(){
   else if(stage == s3_clean223){
     rotate_imu(c_clockwise, 90);
     delay(500);
-    stage == s_clean1LeftSAllign;
+    stage = s_clean1LeftSAllign;
     state = 1;
     finishStarting = true;
+    Serial.println("Exit");
   }
 }
 

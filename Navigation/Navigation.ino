@@ -43,7 +43,7 @@
 #define sc_clean5FStopDist 32
 
 
-#define sc3_clean1FStopDist 55
+#define sc3_clean1FStopDist 35
 #define sc3_clean2FLSStopDist 60
 #define sc3_cleanRetFStopDist 110
 
@@ -167,11 +167,16 @@ Driver mopMotor(mopDirPin1, mopDirPin2, mopEnPin);
 double kp = 10, kd = 1;
 double error = 0, derror = 0, prevError = 0, correction = 0;
 double xError = 0, angleError = 0;
-int basePWM = 130;
+int basePWM = 100;
 int basePWMRotate_d = 120;
-int basePWMRotate_imu = 130;
+int basePWMRotate_imu = 120;
 int basePWMRotate_s = 90;
 
+//
+//int basePWM = 100;
+//int basePWMRotate_d = 10;
+//int basePWMRotate_imu = 90;
+//int basePWMRotate_s = 90;
 double x = 0, y = 0, angle = 0;
 
 long leftFrontDur = 0, leftBackDur = 0;
@@ -200,7 +205,7 @@ int stage = s_clean1LeftSAllign;
 void calc_correction(int dir, int sensor, int shiftRef, double angleRef = 0);
 void allign(int sensor, double angleRef = 0.0);
 
-int entranceNo = 1;
+int entranceNo = 3;
 
 void setup() {
   Serial.begin (9600);
@@ -221,7 +226,7 @@ void setup() {
   timer = micros();
 //  gyroZangle = 0;
 //  test_imu();
-  
+  Serial.println("Before");
   init_ultra();
 //  if (leftBackDist < entranceLeftThresh && frontRightDist > entranceFrontThresh)
 //    entranceNo = 2;
@@ -229,7 +234,7 @@ void setup() {
 //    entranceNo = 3;
   
 //  reset_rack();
-//  stage = s3_clean1F;
+  stage = s3_clean1F;
   Serial.println("Starting......");
 }
 
@@ -245,9 +250,12 @@ void loop(){
   else if (state == 1 && entranceNo == 2 && finishStarting)
     clean_state1_ent1();
 
-  else if(state == 1 && entranceNo == 3)
+  else if(state == 1 && entranceNo == 3 && !finishStarting)
     clean_state1_ent3();
-    
+
+  else if(state == 1 && entranceNo == 3 && finishStarting)
+    clean_state1_ent1();
+   
   else if (state == 2)
     clean_state2();
     

@@ -75,11 +75,14 @@ void allign(int sensor, double angleRef = 0.0){
   double allignDerror = 0;
   double allignPrevError = angleError;
   double allignCorrection = 0;
-  
+  Serial.println("Allign");
 //  serial_print();
   while (angleError < -1 || angleError > 1){
     allignCorrection = allignKp*angleError + allignKd*allignDerror;
-    
+    serial_tab(angleError);
+    Serial.println(allignCorrection);
+    limit(allignCorrection, -25, 25);
+    allignCorrection = 0.01*allignCorrection;
     if (angleError > 0)
       rotate(c_anticlockwise, abs(allignCorrection));
     else

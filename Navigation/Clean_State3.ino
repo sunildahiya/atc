@@ -58,7 +58,7 @@ void clean_state3_ent12(){
       }
       else{
         apply_correction(0);
-        stage = s_clean1FrontSB;
+        stage = s2_cleanlR;
         delay(1000);
         recalibrate();
       }
@@ -81,8 +81,8 @@ void clean_state3_ent3(){
     if (frontRightDist < sc3_cleanRetFStopDist){
       read_ultra();
       find_moving_avg();
-      calc_correction(forward, front, -1);
-      apply_correction(forward);
+      calc_correction(backward, front, -1);
+      apply_correction(backward);
     }
     else{
       apply_correction(0);
