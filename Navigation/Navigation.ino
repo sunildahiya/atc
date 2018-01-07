@@ -222,6 +222,8 @@ void setup() {
   pinMode(commodeIRPin, INPUT);
   pinMode(rackIRPin, INPUT);
 
+  test_motor();
+  while(1);
   jholImu.initMPU9250();
   timer = micros();
 //  gyroZangle = 0;

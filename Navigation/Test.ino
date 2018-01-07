@@ -1,6 +1,6 @@
 void test_motor(){
-  commodeCleanMotor.clockwise(55);
-  mopMotor.anticlockwise(55);
+  commodeCleanMotor.clockwise(155);
+  mopMotor.clockwise(55);
   rollerMotor.clockwise(55);
   motorRight.clockwise(55);
   motorLeft.clockwise(55);
