@@ -22,8 +22,8 @@
 #define rotDur 2400
 #define entryDist 130 
 #define marginDist 20
-#define entranceLeftThresh 50
-#define entranceFrontThresh 160 //To do
+#define entranceLeftThresh 55
+#define entranceFrontThresh 125 //To do
 #define sc_clean1LeftSStopDist 60
 #define sc_clean1FrontSBStopDist 50
 #define sc_clean1LeftSBStopDist 100 
@@ -150,6 +150,11 @@ double sv_clean1LeftStopF = 0, sv_clean1LeftStopI = 0, sv_clean1FrontStop = 0;
 #define mopEnPin 8
 #define mopDirPin1 39
 #define mopDirPin2 37
+
+#define servoCommode 3
+#define servoMop 2
+
+Servo commodeServo;
  
 //Motor Driver Objects
 Driver motorRight(motorRightDirPin, motorRightEnPin);
@@ -205,7 +210,10 @@ int stage = s_clean1LeftSAllign;
 void calc_correction(int dir, int sensor, int shiftRef, double angleRef = 0);
 void allign(int sensor, double angleRef = 0.0);
 
-int entranceNo = 3;
+int entranceNo = 1;
+
+int initial_angle = 0;
+int final_angle = 0;
 
 void setup() {
   Serial.begin (9600);
@@ -221,23 +229,29 @@ void setup() {
   
   pinMode(commodeIRPin, INPUT);
   pinMode(rackIRPin, INPUT);
-
-  test_motor();
-  while(1);
+//  test_ultra();
   jholImu.initMPU9250();
   timer = micros();
-//  gyroZangle = 0;
+  gyroZangle = 0;
+  commodeServo.attach(servoCommode);
+  commodeServo.write(initial_angle);
 //  test_imu();
   Serial.println("Before");
   init_ultra();
-//  if (leftBackDist < entranceLeftThresh && frontRightDist > entranceFrontThresh)
-//    entranceNo = 2;
-//  else if(leftBackDist > entranceLeftThresh)
-//    entranceNo = 3;
   
-//  reset_rack();
-  stage = s3_clean1F;
+//  if (leftBackDist < entranceLeftThresh && frontRightDist > entranceFrontThresh)
+    entranceNo = 1;
+//  else if(leftBackDist > entranceLeftThresh){
+//    entranceNo = 3;
+//    stage = s3_clean1F;
+//  }
+  
   Serial.println("Starting......");
+  serial_tab(entranceNo);
+  Serial.println(stage);
+  Serial.println("Loop Start");
+  rollerMotor.clockwise(55);
+//  reset_rack();
 }
 
 

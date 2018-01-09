@@ -112,11 +112,12 @@ void clean_state2(){
       apply_correction(backward);
     apply_correction(0);
     delay(1000);
-    stage = s_cleanCF;
+    stage = s_cleanCommode;
     recalibrate();
   }
   else if(stage == s_cleanCommode){
     Serial.println("Start");
+    commodeServo.write(final_angle);
     for (int i=0; i<3; i++){
       commodeCleanMotor.anticlockwise(130);
       move_rack(down, 200);
@@ -124,8 +125,10 @@ void clean_state2(){
       move_rack(up, 200);
       move_rack(up);
     }
+    commodeServo.write(initial_angle);
     commodeCleanMotor.stall();
-    stage = s_cleanCF; 
+    stage = s_cleanCF;
+    commodeServo.write(0); 
     Serial.println("Finish");
   }
 
