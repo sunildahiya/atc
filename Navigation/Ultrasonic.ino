@@ -67,11 +67,11 @@ void read_ultra(){
   frontRightDur = pulseIn(frontRightEchoPin, HIGH);
 
   // Calculating the distance
-  leftFrontDist= leftFrontDur*0.034/2+2;
-  leftBackDist= leftBackDur*0.034/2+2;
+  leftFrontDist= leftFrontDur*0.034/2-1+2;
+  leftBackDist= leftBackDur*0.034/2+2+3;
   
-  frontLeftDist= frontLeftDur*0.034/2+2;
-  frontRightDist= frontRightDur*0.034/2;
+  frontLeftDist= frontLeftDur*0.034/2-1+2;
+  frontRightDist= frontRightDur*0.034/2+2;
   }
 
 void find_moving_avg(){
@@ -106,4 +106,27 @@ void find_moving_avg(){
   movingAvgFrontRightV /= 10;
 }
 
+void recalibrate(){
+  movingAvgLeftFrontV = 0;
+  movingAvgLeftBackV = 0;
+  movingAvgFrontLeftV = 0;
+  movingAvgFrontRightV = 0;
+  
+  for (int i=0; i<10; i++){
+    read_ultra();
+    movingAvgLeftFrontV += leftFrontDist;
+    movingAvgLeftBackV += leftBackDist;
+    movingAvgLeftFront[i] = leftFrontDist;
+    movingAvgLeftBack[i] = leftBackDist;
+
+    movingAvgFrontLeftV += frontLeftDist;
+    movingAvgFrontRightV += frontRightDist;
+    movingAvgFrontLeft[i] = frontLeftDist;
+    movingAvgFrontRight[i] = frontRightDist;
+  }
+  movingAvgLeftFrontV /= 10;
+  movingAvgLeftBackV /= 10;
+  movingAvgFrontLeftV /= 10;
+  movingAvgFrontRightV /= 10;
+}
 

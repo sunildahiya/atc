@@ -1,40 +1,117 @@
 #include <Servo.h>
 #include <Driver.h>
 #include <Fuzzy.h>
+#include <Wire.h>
+#include <MPU9250.h>
 
 //Constants
 #define wheelSeparation 39
 #define wheelRadius 5
-#define leftUltraDist 26  
-#define frontUltraDist 30  
+#define leftUltraDist 33  
+#define frontUltraDist 25.5  
+#define leftBackOmniDist 40
+#define frontLeftOmniDist 18.5
 #define forward 1
 #define backward -1
 #define front 1
 #define left -1
+#define up 1
+#define down -1
 #define c_clockwise 1
 #define c_anticlockwise -1
 #define rotDur 2400
 #define entryDist 130 
-#define marginDist 45
-#define sc_clean1FrontSStopDist 50
-#define sc_clean1LeftSStopDist 100 //To do
-#define sc_clean1LeftSRotAngle 18 //To do
-#define sc_clean1LeftSTiltDist 26
+#define marginDist 20
+#define entranceLeftThresh 55
+#define entranceFrontThresh 125 //To do
+#define sc_clean1LeftSStopDist 60
+#define sc_clean1FrontSBStopDist 50
+#define sc_clean1LeftSBStopDist 100 
+#define sc_clean1LeftSRotAngle 16
+#define sc_clean1LeftSTiltDist 16
+
+#define sc_clean1FStopDist 32
+#define sc_clean2FStopDist 115
+#define sc_clean2PStopDist 40
+#define sc_clean3FStopDist 90
+#define sc_clean3PStopDist 70
+#define sc_cleanCFStopDist 110
+#define sc_clean4BStopDist 70
+#define sc_clean5BStopDist 70
+#define sc_cleanRetFStopDist 30
+#define sc_clean4RSlight 15
+#define sc_clean5FStopDist 32
+
+
+#define sc3_clean1FStopDist 35
+#define sc3_clean2FLSStopDist 60
+#define sc3_cleanRetFStopDist 110
+
+#define s3_clean1F 301
+#define s3_clean122 302
+#define s3_clean2FLS 303
+#define s3_clean2FFS 304
+#define s3_clean223 305
+#define s3_cleanRetF 306
+
+#define s2_cleanlR 201
+
+#define rackIRPin A0
+#define commodeIRPin A1
 
 #define s_entry 1
 #define s_clean1LeftSAllign 2
 #define s_clean1LeftS 3
 #define s_clean1FrontS 4
 #define s_clean1FrontSB 5
-#define s_clean1LeftSRotSlight 6
-#define s_clean1LeftSB 7
+#define s_clean1LeftSB 6
+#define s_clean1LeftSRotSlight 7
 #define s_clean1FrontRightSShift 9 
 #define s_clean1LeftSRot90 10
-#define s_stop 11
+#define s_stop -1
 #define s_clean1LeftSTilt 12
-#define s_clean12clean2 13
-double leftRefDist = 18;
+
+
+#define s_clean1LeftSAllign2 14
+#define s_clean1F 15
+#define s_clean122 16
+#define s_clean2F 17
+//#define s_clean2B 15
+#define s_clean2R 18
+#define s_clean2P 19
+#define s_clean223 20
+#define s_clean3F 21
+#define s_clean3R 22
+#define s_clean3P 23
+#define s_clean32C 25
+#define s_cleanCB 26
+
+#define s_cleanCommode 27
+
+#define s_cleanCF 28
+#define s_cleanC23 29
+#define s_clean3P2 30
+#define s_clean324 31
+#define s_clean4F 32
+#define s_clean4RSlight 42
+#define s_clean4B 33
+
+#define s_clean425 34
+
+#define s_clean5F 35
+#define s_clean5R 36
+#define s_clean5P 37
+#define s_clean5B 38
+#define s_cleanRetR 39
+#define s_cleanRetF 40
+#define s_cleanRetFinish 41
+ 
+int state = 1;
+bool finishStarting = false;
+
+double leftRefDist = 20;
 double frontRefDist = 25;
+double sv_clean1LeftStopF = 0, sv_clean1LeftStopI = 0, sv_clean1FrontStop = 0;
 
 //Encoder Interrupt Pins
 #define encoderPinRight1 18
@@ -43,12 +120,10 @@ double frontRefDist = 25;
 #define encoderPinLeft2 21
 
 //Motor Driver Pins
-#define motorRightEnPin 8
-#define motorRightDirPin1 39
-#define motorRightDirPin2 37
-#define motorLeftEnPin 4
-#define motorLeftDirPin1 23
-#define motorLeftDirPin2 22
+#define motorRightEnPin 11
+#define motorRightDirPin 30
+#define motorLeftEnPin 10
+#define motorLeftDirPin 28
 
 //Ultrasonic Sensors Left
 #define leftFrontTrigPin A6 
@@ -62,42 +137,55 @@ double frontRefDist = 25;
 #define frontRightTrigPin A5 
 #define frontRightEchoPin A4 
 
-//Commode Mechanism Motor
-#define rackMotorDirPin 28
-#define rackMotorEnPin 10
-#define commodeMotorDirPin 30
-#define commodeMotorEnPin 11
+//Commode Mechanism
+#define commodeRackEnPin 44
+#define commodeRackDirPin 34
+#define commodeCleanEnPin 46
+#define commodeCleanDirPin 32
 
+//Floor Mechanism
+#define rollerEnPin 4
+#define rollerDirPin1 22
+#define rollerDirPin2 23
+#define mopEnPin 8
+#define mopDirPin1 39
+#define mopDirPin2 37
+
+#define servoCommode 3
+#define servoMop 2
+
+Servo commodeServo;
+ 
 //Motor Driver Objects
-Driver motorRight(motorRightDirPin1, motorRightDirPin2, motorRightEnPin);
-Driver motorLeft(motorLeftDirPin1, motorLeftDirPin2, motorLeftEnPin);
+Driver motorRight(motorRightDirPin, motorRightEnPin);
+Driver motorLeft(motorLeftDirPin, motorLeftEnPin);
 
-Driver rackMotor(rackMotorDirPin, rackMotorEnPin);
-Driver commodeMotor(commodeMotorDirPin, commodeMotorEnPin);
+Driver commodeRackMotor(commodeRackDirPin, commodeRackEnPin);
+Driver commodeCleanMotor(commodeCleanDirPin, commodeCleanEnPin);
 
-
+Driver rollerMotor(rollerDirPin1, rollerDirPin2, rollerEnPin);
+Driver mopMotor(mopDirPin1, mopDirPin2, mopEnPin);
 
 //Fuzzy
 //Fuzzy fuzzy(12, 5, 40, 0); //error, derror, correction and centre
 
-double kp = 2, kd = 0;
+double kp = 10, kd = 1;
 double error = 0, derror = 0, prevError = 0, correction = 0;
 double xError = 0, angleError = 0;
-int basePWM = 180;
+int basePWM = 100;
 int basePWMRotate_d = 120;
-int basePWMRotate_s = 160;
-volatile int lastEncodedRight = 0;
-volatile long encoderValueRight = 0;
-long prevEncoderValueRight = 0;
+int basePWMRotate_imu = 120;
+int basePWMRotate_s = 90;
 
-volatile int lastEncodedLeft = 0;
-volatile long encoderValueLeft = 0;
-long prevEncoderValueLeft = 0;
-
+//
+//int basePWM = 100;
+//int basePWMRotate_d = 10;
+//int basePWMRotate_imu = 90;
+//int basePWMRotate_s = 90;
 double x = 0, y = 0, angle = 0;
 
 long leftFrontDur = 0, leftBackDur = 0;
-long leftFrontDist = 0, leftBackDist = 0;
+double leftFrontDist = 0, leftBackDist = 0;
 
 double movingAvgLeftFront[10];
 double movingAvgLeftBack[10];
@@ -111,20 +199,25 @@ double movingAvgFrontLeft[10];
 double movingAvgFrontRight[10];
 double movingAvgFrontLeftV=0, movingAvgFrontRightV=0;
 
-long start_i;
-int stop_b = -1;
-int stage = s_clean1LeftSAllign;
+int16_t gyro[3] = {0, 0, 0};
+MPU9250 jholImu;
+double timer = 0;
+double gyroZangle = 0;
 
+long start_i;
+int stage = s_clean1LeftSAllign;
+//int stage = s_stop;
 void calc_correction(int dir, int sensor, int shiftRef, double angleRef = 0);
 void allign(int sensor, double angleRef = 0.0);
 
+int entranceNo = 1;
+
+int initial_angle = 0;
+int final_angle = 0;
+
 void setup() {
   Serial.begin (9600);
-
-//  pinMode(encoderPinRight1, INPUT); 
-//  pinMode(encoderPinRight2, INPUT);
-//  pinMode(encoderPinLeft1, INPUT); 
-//  pinMode(encoderPinLeft2, INPUT);
+ 
   pinMode(leftFrontTrigPin, OUTPUT); 
   pinMode(leftFrontEchoPin, INPUT); 
   pinMode(leftBackTrigPin, OUTPUT); 
@@ -133,138 +226,67 @@ void setup() {
   pinMode(frontLeftEchoPin, INPUT); 
   pinMode(frontRightTrigPin, OUTPUT); 
   pinMode(frontRightEchoPin, INPUT);
-
-//  digitalWrite(encoderPinRight1, HIGH); //turn pullup resistor on
-//  digitalWrite(encoderPinRight2, HIGH); //turn pullup resistor on
-//  digitalWrite(encoderPinLeft1, HIGH); //turn pullup resistor on
-//  digitalWrite(encoderPinLeft2, HIGH); //turn pullup resistor on
-
   
-//  attachInterrupt(5, updateEncoderRight, CHANGE); 
-//  attachInterrupt(4, updateEncoderRight, CHANGE);
-//  attachInterrupt(3, updateEncoderLeft, CHANGE); 
-//  attachInterrupt(2, updateEncoderLeft, CHANGE);
-
+  pinMode(commodeIRPin, INPUT);
+  pinMode(rackIRPin, INPUT);
+//  test_ultra();
+  jholImu.initMPU9250();
+  timer = micros();
+  gyroZangle = 0;
+  commodeServo.attach(servoCommode);
+  commodeServo.write(initial_angle);
+//  test_imu();
+  Serial.println("Before");
   init_ultra();
-}
-
-void loop(){
-  if (Serial.available()){
-    int v = Serial.read();
-//    if (v == 1){
-//      rackMotor.clockwise(120);
-//      delay(2000);
-//      rackMotor.stall();
-//    }
-//    if (v == 2){
-//      rackMotor.anticlockwise(120);
-//      delay(2000);
-//      rackMotor.stall();
-//    }
-    commodeMotor.clockwise(160);
-  }
-}
-
-/*
-void loop(){
-  Serial.print("Stage:\t");
+  
+//  if (leftBackDist < entranceLeftThresh && frontRightDist > entranceFrontThresh)
+    entranceNo = 1;
+//  else if(leftBackDist > entranceLeftThresh){
+//    entranceNo = 3;
+//    stage = s3_clean1F;
+//  }
+  
+  Serial.println("Starting......");
+  serial_tab(entranceNo);
   Serial.println(stage);
-  if(stage == s_clean1LeftSAllign){
-    allign(left, 0.0);
-    read_ultra();
-    find_moving_avg();
-//    serial_print();
-//    leftRefDist = movingAvgLeftBackV;
-    stage = s_clean1LeftS;
-  }
-  else if(stage == s_clean1LeftS){
-    if (movingAvgFrontRightV > sc_clean1FrontSStopDist){
-      read_ultra();
-      find_moving_avg();
-      calc_correction(forward, left, leftRefDist);
-      apply_correction(forward);
-    }
-    else
-      stage = s_clean1FrontS;
-  }
-  else if(stage == s_clean1FrontS){
-    if (movingAvgFrontRightV > marginDist){
-      read_ultra();
-      find_moving_avg();
-      calc_correction(forward, front, -1);
-      apply_correction(forward);
-      serial_print();
-    }
-    else
-      stage = s_clean1FrontSB;
-  }
-  else if(stage == s_clean1FrontSB){
-    if (movingAvgFrontRightV < sc_clean1FrontSStopDist){
-      read_ultra();
-      find_moving_avg();
-      calc_correction(backward, front, -1);
-      apply_correction(backward);
-    }
-    else{
-      stage = s_clean1LeftSB;
-      movingAvgLeftFrontV = leftFrontDist;
-      movingAvgLeftBackV = leftBackDist;
-      for (int i=0; i<10; i++){
-        movingAvgLeftFront[i] = leftFrontDist;
-        movingAvgLeftBack[i] = leftBackDist;
-      }
-    }
-  }
-  else if(stage == s_clean1LeftSB){
-    if (movingAvgFrontLeftV < sc_clean1LeftSStopDist){
-      read_ultra();
-      find_moving_avg();
-      calc_correction(backward, left, leftRefDist);
-      apply_correction(backward);
-    }
-    else
-      stage = s_clean1LeftSRotSlight;
-  }
-  else if(stage == s_clean1LeftSRotSlight){
-    allign(left, sc_clean1LeftSRotAngle);
-//    serial_print();
-    stage = s_clean1LeftSTilt;
-//    stage = s_stop;
-  }
-  else if(stage == s_clean1LeftSTilt){
-    if (movingAvgLeftBackV < sc_clean1LeftSTiltDist){
-      read_ultra();
-      find_moving_avg();
-//      calc_correction(forward, left, leftRefDist);
-      correction = 0;
-      apply_correction(forward);
-    }
-    else
-      stage = s_clean12clean2;
-  }
-  else if(stage == s_clean12clean2){
-    rotate_dur(c_clockwise, 1600);
-    allign(left, 0);
-    stage = s_stop;
-  }
-//  else if(stage == s_clean1LeftSB){
-//    if (movingAvgLeftBackV < sc_clean1LeftSStopDist){
-//      read_ultra();
-//      find_moving_avg();
-//      calc_correction(backward, left, -1);
-//      apply_correction(backward);
-//    }
-//    else
-//      stage = s_clean1LeftSAllign;
-//  }
-//  else if(stage == s_clean1LeftSRot90){
-//    rotate_dur(c_clockwise, rotDur);
-//    allign(left, 0.0);
-//    stage = s_stop;
-//  }
-  else if (stage = s_stop)
-    apply_correction(0);
-//  
-  serial_print();
+  Serial.println("Loop Start");
+  rollerMotor.clockwise(55);
+//  reset_rack();
 }
-*/
+
+
+void loop(){
+  
+  if (state == 1 && entranceNo == 1)
+    clean_state1_ent1();
+    
+  else if (state == 1 && entranceNo == 2 && !finishStarting)
+    clean_state1_ent2();
+    
+  else if (state == 1 && entranceNo == 2 && finishStarting)
+    clean_state1_ent1();
+
+  else if(state == 1 && entranceNo == 3 && !finishStarting)
+    clean_state1_ent3();
+
+  else if(state == 1 && entranceNo == 3 && finishStarting)
+    clean_state1_ent1();
+   
+  else if (state == 2)
+    clean_state2();
+    
+  else if(state == 3 && (entranceNo == 1 || entranceNo == 2))
+    clean_state3_ent12();
+    
+  else if(state == 3 && entranceNo == 3)
+    clean_state3_ent3();
+    
+  else if(state == 4)
+    clean_state4();
+  
+ 
+//  read_ultra();
+//  find_moving_avg();
+//  serial_print();
+
+}
